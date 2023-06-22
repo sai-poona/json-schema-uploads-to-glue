@@ -1,0 +1,40 @@
+# This YAML file defines the configuration for data processing.
+# It specifies the data format, pipeline type, and storage zones.
+
+# Placeholders:
+# [aws_env]: AWS environment of the resources
+# [logical_env]: Logical environment of the resources
+
+# Data format for the pipeline (JSON in this case)
+# Allowed values are csv, json, xml
+data_format: json
+
+# Main raw schema file for the pipeline
+main_schema_file: "persons-1.schema.json"
+
+
+# Storage zones for different stages of data processing
+storage_zones:
+  raw:
+    # Database name for raw data
+    database: "[logical_env]_source_raw"
+    # Table name for raw data
+    table: persons
+    # S3 location for raw data
+    s3_location: s3://[aws_env]-[logical_env]-glue-tests/raw/
+
+  staging:
+    # Database name for staging data
+    database: "[logical_env]_source_staging"
+    # Table name for staging data
+    table: persons
+    # S3 location for staging data
+    s3_location: s3://[aws_env]-[logical_env]-glue-tests/staging/
+
+  processed:
+    # Database name for staging data
+    database: "[logical_env]_source_processed"
+    # Table name for staging data
+    table: persons
+    # S3 location for staging data
+    s3_location: s3://[aws_env]-[logical_env]-glue-tests/processed/
