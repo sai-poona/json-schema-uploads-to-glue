@@ -22,7 +22,16 @@ if __name__ == "__main__":
     job = Job(glueContext)
     job.init(args["JOB_NAME"], args)
 
-    config, schema, partition_keys = parse_schema(source_path)
-    create_glue_tables_from_schema(spark, config, schema, partition_keys)
+    place_holders = {"[aws_env]": "sandbox", "[logical_env]": "sai"}
+    partition_keys_list = [
+        "year:string",
+        "month:string",
+        "day:string",
+        "hour:string",
+        "minute:string",
+    ]
+
+    data = parse_schema(source_path, place_holders=place_holders, partition_keys_list=partition_keys_list)
+    create_glue_tables_from_schema(spark, data['config'], data['schema'], data['partition_keys'])
 
     job.commit()

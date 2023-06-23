@@ -22,7 +22,7 @@ def replace_placeholders(dictionary, placeholders):
         elif isinstance(value, str):
             # Replace placeholders in string values using regex
             pattern = re.compile(r"\[(.*?)\]")
-            replaced_value = pattern.sub(lambda x: placeholders[x.group()], value)
+            replaced_value = pattern.sub(lambda x: placeholders.get(x.group(), x.group()), value)
             replaced_dict[key] = replaced_value
         else:
             # Keep non-string, non-dict values as is
@@ -67,12 +67,12 @@ def load_yaml_config(config_file_location, placeholders):
     return config
 
 
-def create_partition_keys(partition_key_list):
+def create_partition_keys(partition_keys_list: list):
     """
     Creates a list of partition keys from a given partition key list.
 
     Args:
-        partition_key_list (list): A list of partition keys in the format "key_name:key_type".
+        partition_keys_list (list): A list of partition keys in the format "key_name:key_type".
 
     Returns:
         list: A list of partition keys as dictionaries, with each dictionary containing "Name" and "Type" keys.
@@ -82,7 +82,7 @@ def create_partition_keys(partition_key_list):
         Output: [{"Name": "year", "Type": "int"}, {"Name": "month", "Type": "string"}]
     """
     partition_keys = []
-    for partition_key in partition_key_list:
+    for partition_key in partition_keys_list:
         # Split the partition key into name and type
         key_name, key_type = partition_key.split(":")
 

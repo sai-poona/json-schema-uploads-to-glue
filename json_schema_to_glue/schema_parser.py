@@ -7,7 +7,7 @@ from json_schema_to_glue.schema.ref_resolver import JSONRefResolver
 from json_schema_to_glue.schema.utils import *
 
 
-def download_extract_file_from_s3(source_path):
+def extract_configs(source_path, temp_base_path: str = None):
     """
     Download a file from Amazon S3 and extract its contents to a temporary directory.
 
@@ -16,13 +16,15 @@ def download_extract_file_from_s3(source_path):
     Returns:
         str: The path of the temporary directory where the file has been extracted.
     """
-    temp_dir = f"/tmp/{uuid4()}"
+    if temp_base_path is None:
+        temp_base_path = f"/tmp/{uuid4()}"
+
     # Create the temporary directory if it doesn't exist
-    if not os.path.exists(temp_dir):
-        os.makedirs(temp_dir)
+    if not os.path.exists(temp_base_path):
+        os.makedirs(temp_base_path)
 
     # Generate a unique file name for the temporary file
-    file_name = os.path.join(temp_dir, os.path.basename(source_path))
+    file_name = os.path.join(temp_base_path, os.path.basename(source_path))
 
     if "s3://" in source_path or "s3a://" in source_path:
         _, _, bucket_name, prefix = source_path.split("/", 3)
@@ -34,10 +36,10 @@ def download_extract_file_from_s3(source_path):
         file_name = source_path
 
     # Extract the contents of the file to the temporary directory
-    shutil.unpack_archive(file_name, temp_dir)
+    shutil.unpack_archive(file_name, temp_base_path)
 
     # Return the path of the temporary directory
-    return temp_dir
+    return temp_base_path
 
 
 def load_json_schema(schema_file_location):
@@ -64,17 +66,19 @@ def load_json_schema(schema_file_location):
     return resolved_schema
 
 
-def parse_schema(zip_file_path):
+def parse_schema(zip_file_path, place_holders: dict = None, partition_keys_list: list = None):
     assert zip_file_path.endswith(".zip")
-    extracted_files_path = download_extract_file_from_s3(source_path=zip_file_path)
+    extracted_files_path = extract_configs(source_path=zip_file_path)
 
     config_file_path = find_config_file(extracted_files_path)
 
     if not config_file_path:
         raise Exception("Config file not found.")
 
-    placeholders = {"[aws_env]": "sandbox", "[logical_env]": "sai"}
-    config = load_yaml_config(config_file_path, placeholders)
+    if place_holders is None:
+        place_holders = dict()
+
+    config = load_yaml_config(config_file_path, place_holders)
 
     current_working_directory = os.getcwd()
     os.chdir(extracted_files_path)
@@ -84,12 +88,7 @@ def parse_schema(zip_file_path):
 
     os.chdir(current_working_directory)
 
-    partition_key_list = [
-        "year:string",
-        "month:string",
-        "day:string",
-        "hour:string",
-        "minute:string",
-    ]
-    partition_keys = create_partition_keys(partition_key_list)
+    if partition_keys_list is None:
+        partition_keys_list = list()
+    partition_keys = create_partition_keys(partition_keys_list)
     return dict(config=config, schema=schema, partition_keys=partition_keys)
