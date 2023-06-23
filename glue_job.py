@@ -14,6 +14,7 @@ if __name__ == "__main__":
 
     bucket_name = args["schema_files_bucket"]
     prefix = args["schema_files_prefix"]
+    source_path = f"s3://{bucket_name}/{prefix}"
 
     glueContext = GlueContext(SparkContext.getOrCreate())
     spark = glueContext.spark_session
@@ -21,7 +22,7 @@ if __name__ == "__main__":
     job = Job(glueContext)
     job.init(args["JOB_NAME"], args)
 
-    config, schema, partition_keys = parse_schema(bucket_name, prefix)
+    config, schema, partition_keys = parse_schema(source_path)
     create_glue_tables_from_schema(spark, config, schema, partition_keys)
 
     job.commit()
