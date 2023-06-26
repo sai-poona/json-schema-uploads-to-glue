@@ -911,7 +911,7 @@ glue_data_formats_mapping ={
         },
         "parameters": {
             "classification": "parquet",
-            "useGlueParquetWriter": True
+            "useGlueParquetWriter": "true"
         }
     }
 }
