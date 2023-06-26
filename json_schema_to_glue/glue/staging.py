@@ -48,7 +48,7 @@ def create_or_update_staging_table(config, schema, partition_keys):
         input_format=staging_input_format,
         output_format=staging_output_format,
         serde_info=staging_serde_info,
-        partition_keys=partition_keys,
+        # partition_keys=partition_keys,
         parameters=staging_parameters,
     )
 

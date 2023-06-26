@@ -205,6 +205,6 @@ glue_data_formats_mapping = {
             "SerializationLibrary": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",
             "Parameters": {"serialization.format": "1"},
         },
-        "parameters": {"classification": "parquet"},
+        "parameters": {"classification": "parquet", "useGlueParquetWriter": "true"},
     },
 }
