@@ -18,9 +18,9 @@ def glue_column_type_from_json_schema(value):
     if value["type"] == "string":
         return "STRING"
     elif value["type"] == "integer":
-        return "BIGINT"
+        return "INT"
     elif value["type"] == "number":
-        return "DOUBLE"
+        return "FLOAT"
     elif value["type"] == "boolean":
         return "BOOLEAN"
     elif value["type"] == "object":
