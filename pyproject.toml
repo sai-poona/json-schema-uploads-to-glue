@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "json-schema-to-glue"
+version = "0.1.0"
+description = "Reads json-schema (zip with refs included + metadata) and creates glue tables"
+authors = [
+    "Author: Sai <80665633+sai-poona@users.noreply.github.com>",
+    "Sury Soni <83525+spsoni@users.noreply.github.com>"
+]
+packages = [{include = "json_schema_to_glue"}]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+pyyaml = "^6.0"
+
+
+[tool.poetry.group.dev.dependencies]
+boto3 = "^1.26.159"
+requests = "^2.31.0"
+pyspark = "^3.4.0"
+delta-spark = "^2.4.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
