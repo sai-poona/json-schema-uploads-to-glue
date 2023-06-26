@@ -910,7 +910,8 @@ glue_data_formats_mapping ={
             }
         },
         "parameters": {
-            "classification": "parquet"
+            "classification": "parquet",
+            "useGlueParquetWriter": True
         }
     }
 }
