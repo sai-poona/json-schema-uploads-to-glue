@@ -1,6 +1,10 @@
+import boto3
 import json
 import os
+import re
 import requests
+import shutil
+import yaml
 
 from urllib.parse import urlparse
 
@@ -10,17 +14,19 @@ class JSONRefResolver:
     A class for resolving $refs in a JSON schema.
     """
 
-    def __init__(self, schema):
+    def __init__(self, schema_file: str):
         """
         Initialize the JSONRefResolver.
 
         Args:
-            schema (dict): The JSON schema to resolve.
+            schema_file (str): The main JSON schema file
         """
-        self.schema = schema
+        self.schema_file = schema_file
+        # Load the JSON schema
+        self.schema = json.load(open(self.schema_file))
         self.resolved_refs = {}
 
-    def resolve_refs(self):
+    def resolved_schema(self) -> dict:
         """
         Resolve the $refs in the JSON schema.
 
@@ -161,3 +167,109 @@ class JSONRefResolver:
             raise Exception(
                 f"Error resolving external URL reference: {response.status_code} - {ref_value}"
             )
+
+
+class YamlConfigParser:
+    def __init__(self, config_file: str, place_holders: dict = None):
+        self.config_file = config_file
+        self._config: dict = None
+        self._place_holders = place_holders
+
+    @property
+    def config(self) -> dict:
+        if self._config is None:
+            with open(self.config_file) as f:
+                # Load the YAML content
+                _config = yaml.safe_load(f)
+                if self._place_holders is not None:
+                    self._config = self.replace_placeholders(
+                        _config, self._place_holders
+                    )
+        return self._config
+
+    @classmethod
+    def replace_placeholders(cls, config: dict, place_holders: dict):
+        replaced_dict = {}
+        for key, value in config.items():
+            if isinstance(value, dict):
+                # Recursively process nested dictionaries
+                replaced_dict[key] = cls.replace_placeholders(value, place_holders)
+            elif isinstance(value, str):
+                # Replace placeholders in string values using regex
+                pattern = re.compile(r"\[(.*?)\]")
+                replaced_value = pattern.sub(
+                    lambda x: place_holders.get(x.group(), x.group()), value
+                )
+                replaced_dict[key] = replaced_value
+            else:
+                # Keep non-string, non-dict values as is
+                replaced_dict[key] = value
+        return replaced_dict
+
+
+class ZipSchema:
+    def __init__(self, zip_schema: str, extract_base_path: str, place_holders: dict = None):
+        assert zip_schema.endswith(".zip")
+        self.zip_schema = zip_schema
+        self.extract_base_path = extract_base_path
+        self._place_holders = place_holders
+
+        self._config = None
+        self._main_config_file = None
+        self._main_schema_file = None
+        self._unzipped: bool = False
+
+    def _unzip(self):
+        if self._unzipped:
+            return
+
+        # Create the temporary directory if it doesn't exist
+        if not os.path.exists(self.extract_base_path):
+            os.makedirs(self.extract_base_path)
+
+        # Generate a unique file name for the temporary file
+        file_name = os.path.join(
+            self.extract_base_path, os.path.basename(self.zip_schema)
+        )
+
+        if "s3://" in self.zip_schema or "s3a://" in self.zip_schema:
+            _, _, bucket_name, prefix = self.zip_schema.split("/", 3)
+            # Initialize the S3 client
+            s3 = boto3.client("s3")
+            # Download the file from S3 to the temporary path
+            s3.download_file(bucket_name, prefix, file_name)
+        else:
+            file_name = self.zip_schema
+
+        # Extract the contents of the file to the temporary directory
+        shutil.unpack_archive(file_name, self.extract_base_path)
+        self._unzipped = True
+
+    @property
+    def config(self) -> dict:
+        if self._config is not None:
+            return self._config
+
+        self._unzip()
+
+        for root, dirs, files in os.walk(self.extract_base_path):
+            for file in files:
+                if file.endswith(".config.yml") or file.endswith(".config.yaml"):
+                    self._config = YamlConfigParser(
+                        os.path.join(root, file), self._place_holders
+                    ).config
+                    return self._config
+
+        raise RuntimeError(f"No .config.y(a)ml file found at {self.extract_base_path}")
+
+    def get_main_schema_file(self):
+        return self.config["main_schema_file"]
+
+    def parse_schema(self):
+        current_working_directory = os.getcwd()
+        os.chdir(self.extract_base_path)
+
+        schema = JSONRefResolver(self.get_main_schema_file()).resolved_schema()
+
+        os.chdir(current_working_directory)
+        return schema

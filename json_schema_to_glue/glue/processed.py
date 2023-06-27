@@ -1,5 +1,5 @@
+import boto3
 from delta.tables import DeltaTable
-from json_schema_to_glue.schema_parser import *
 from json_schema_to_glue.glue.utils import create_spark_schema_from_glue_columns
 from urllib.parse import urlparse
 
