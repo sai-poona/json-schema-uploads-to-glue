@@ -18,6 +18,11 @@ def glue_column_type_from_json_schema(value):
     if value["type"] == "string":
         if "contentEncoding" in value and value["contentEncoding"] == "base64":
             return "BINARY"
+        elif "format" in value:
+            if value["format"] == "date":
+                return "DATE"
+            elif value["format"] == "date-time":
+                return "TIMESTAMP"
         return "STRING"
     elif value["type"] == "integer":
         return "INT"
