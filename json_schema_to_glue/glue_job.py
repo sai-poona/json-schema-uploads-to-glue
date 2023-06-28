@@ -1,11 +1,15 @@
 import sys
+from uuid import uuid4
+
 from awsglue.context import GlueContext
 from awsglue.job import Job
 from awsglue.transforms import *
 from awsglue.utils import getResolvedOptions
+
 from pyspark.context import SparkContext
-from json_schema_to_glue.schema_parser import parse_schema
-from json_schema_to_glue.glue_table_creator import create_glue_tables_from_schema
+from json_schema_to_glue.glue.glue_table_creator import create_glue_tables_from_schema
+from json_schema_to_glue.json_schema_parser import ZipSchema
+
 
 if __name__ == "__main__":
     args = getResolvedOptions(
@@ -22,7 +26,6 @@ if __name__ == "__main__":
     job = Job(glueContext)
     job.init(args["JOB_NAME"], args)
 
-    place_holders = {"[aws_env]": "sandbox", "[logical_env]": "sai"}
     partition_keys_list = [
         "year:string",
         "month:string",
@@ -30,8 +33,15 @@ if __name__ == "__main__":
         "hour:string",
         "minute:string",
     ]
+    place_holders = {"[aws_env]": "sandbox", "[logical_env]": "app1"}
 
-    data = parse_schema(source_path, place_holders=place_holders, partition_keys_list=partition_keys_list)
-    create_glue_tables_from_schema(spark, data['config'], data['schema'], data['partition_keys'])
+    extract_base_path = f"/tmp/{uuid4()}"
+
+    zip_schema = ZipSchema(
+        zip_schema=source_path, extract_base_path=extract_base_path, place_holders=place_holders
+    )
+    config = zip_schema.config
+    schema = zip_schema.parse_schema()
+    create_glue_tables_from_schema(spark, config, schema, partition_keys_list)
 
     job.commit()
