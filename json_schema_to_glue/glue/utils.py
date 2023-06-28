@@ -16,6 +16,8 @@ def glue_column_type_from_json_schema(value):
         Exception: If the JSON schema type is unknown or an empty array is encountered.
     """
     if value["type"] == "string":
+        if "contentEncoding" in value and value["contentEncoding"] == "base64":
+            return "BINARY"
         return "STRING"
     elif value["type"] == "integer":
         return "INT"
